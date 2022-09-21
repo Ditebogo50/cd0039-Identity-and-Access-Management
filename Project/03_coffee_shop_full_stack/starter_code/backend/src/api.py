@@ -1,9 +1,12 @@
 from crypt import methods
 import os
+# from turtle import title
 from flask import Flask, request, jsonify, abort
 from sqlalchemy import exc
 import json
 from flask_cors import CORS
+import sys
+
 
 from .database.models import db_drop_and_create_all, setup_db, Drink
 from .auth.auth import AuthError, requires_auth
@@ -43,8 +46,6 @@ def get_drinks():
         "success": True,
         "drinks": drinks})
           
-
-
 '''
 @TODO implement endpoint
     GET /drinks-detail
@@ -68,8 +69,6 @@ def get_drinks_detail(payload):
         "success": True,
         "drinks": drinks})
      
-
-
 '''
 @TODO implement endpoint
     POST /drinks
@@ -80,6 +79,27 @@ def get_drinks_detail(payload):
         or appropriate status code indicating reason for failure
 '''
 
+@app.route("/drinks", methods=["POST"])
+@requires_auth("post:drinks")
+def add_drinks(payload):
+
+    body = request.get_json()
+
+    new_title = body.get("title", None)
+    new_recipe = body.get("recipe", None)
+
+    try:
+        new_drink = Drink(title=new_title, recipe=json.dumps(new_recipe))
+        new_drink.insert()
+
+        req_drink = Drink.query.filter(Drink.title == new_title).one()
+        
+        return jsonify({
+           "success": True,
+           "drinks": [req_drink.long()]})
+    except:
+        abort(422)       
+        
 
 '''
 @TODO implement endpoint
@@ -93,6 +113,29 @@ def get_drinks_detail(payload):
         or appropriate status code indicating reason for failure
 '''
 
+@app.route("/drinks/<id>", methods=["PATCH"])
+@requires_auth("patch:drinks")
+def update_drinks(payload, id):
+    body = request.get_json()
+    patch_drink = Drink.query.filter(Drink.id == id).one_or_none()
+
+    if patch_drink is None:
+        abort(404)
+
+    try:
+        if "title" in body:
+           patch_drink.title = body.get("title", None)
+
+        if "recipe" in body:    
+           patch_drink.recipe = body.get("recipe", None)
+    
+        patch_drink.update()
+
+        return jsonify({
+           "success": True,
+           "drinks": [patch_drink.long()]})
+    except:
+        abort(422)    
 
 '''
 @TODO implement endpoint
@@ -105,12 +148,29 @@ def get_drinks_detail(payload):
         or appropriate status code indicating reason for failure
 '''
 
+@app.route("/drinks/<id>", methods=["DELETE"])
+@requires_auth("delete:drinks")
+def delete_drinks(payload,id):
+
+    try:
+        delete_drink = Drink.query.filter(Drink.id == id).one_or_none()
+
+        if delete_drink is None:
+          abort(404)
+
+        delete_drink.delete()
+
+        return jsonify({
+           "success": True,
+           "delete": id})
+    except:
+        abort(422)    
+
 
 # Error Handling
 '''
 Example error handling for unprocessable entity
 '''
-
 
 @app.errorhandler(422)
 def unprocessable(error):
@@ -119,7 +179,6 @@ def unprocessable(error):
         "error": 422,
         "message": "unprocessable"
     }), 422
-
 
 
 '''
