@@ -32,17 +32,17 @@ db_drop_and_create_all()
 @app.route("/drinks",methods=["GET"])
 # @requires_auth("get:drinks")
 def get_drinks():
-    try:
-        req_drinks = Drink.query.all()
-        drinks = [drink.short() for drink in req_drinks]
 
-        return jsonify({
-            "success": True,
-            "drinks": drinks})
-    except:
-        abort(422)        
+    req_drinks = Drink.query.all()
+    drinks = [drink.short() for drink in req_drinks]
 
+    if len(drinks) == 0:
+        abort(404)
 
+    return jsonify({
+        "success": True,
+        "drinks": drinks})
+          
 
 
 '''
@@ -54,18 +54,20 @@ def get_drinks():
         or appropriate status code indicating reason for failure
 '''
 
-@app.route("/drinks-detail",methods=["GET"])
+@app.route("/drinks-detail", methods=["GET"])
 @requires_auth("get:drinks-detail")
-def get_drinks_detail():
-    try:
-        req_drinks = Drink.query.all()
-        drinks = [drink.long() for drink in req_drinks]
+def get_drinks_detail(payload):
+    
+    req_drinks = Drink.query.all()
+    drinks = [drink.long() for drink in req_drinks]
 
-        return jsonify({
-            "success": True,
-            "drinks": drinks})
-    except:
-        abort(422)  
+    if len(drinks) == 0:
+        abort(404)
+
+    return jsonify({
+        "success": True,
+        "drinks": drinks})
+     
 
 
 '''
@@ -119,6 +121,7 @@ def unprocessable(error):
     }), 422
 
 
+
 '''
 @TODO implement error handlers using the @app.errorhandler(error) decorator
     each error handler should return (with approprate messages):
@@ -134,6 +137,30 @@ def unprocessable(error):
 @TODO implement error handler for 404
     error handler should conform to general task above
 '''
+
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({
+        "success": False,
+        "error": 404,
+        "message": "resource not found"
+    }), 404
+
+@app.errorhandler(500)
+def server_error(error):
+    return jsonify({
+        "success": False,
+        "error": 500,
+        "message": "internal server error"
+    }), 500
+
+@app.errorhandler(405)
+def not_allowed(error):
+    return jsonify({
+        "success": False,
+        "error": 405,
+        "message": "method not allowed"
+    }), 405
 
 
 '''
